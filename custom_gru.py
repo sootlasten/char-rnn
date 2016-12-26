@@ -1,3 +1,7 @@
+"""I'm defining a custom GRULayer that does NOT repeat the shape, since my
+hidden vector is already of the shape (batch_size, num_units). The corresponding
+change is done around line 335."""
+
 import numpy as np
 import theano
 import theano.tensor as T
