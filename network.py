@@ -171,7 +171,7 @@ class Network(object):
                 best_val_err = total_val_err
                 best_epoch_n = epoch_n
 
-            filename = "model_e{}_{:.2f}.pickle".format(epoch_n, total_val_err)
+            filename = "model_e{}_{:.4f}.pickle".format(epoch_n, total_val_err)
             self._save_weights_and_hyperparams(
                 os.path.join(CHECKPOINT_DIR, filename))
 

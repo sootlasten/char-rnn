@@ -13,8 +13,10 @@ file has a filename of the form `model_e[x]_[y].pickle`, where `x` specifies the
 ### Sampling
 To sample from the model, the script `sample.py` must be run. This script also takes command line arguments (see `python sample.py -h` 
 for additional info). The only mandatory argument, though, is `--model_file`, which should point to one of the checkpoint files saved in 
-the training phase. A minimal example of running the script: `python sample.py --model_file chechpoints/model_e24_1.63.pickle`.
+the training phase. A minimal example of running the script: `python sample.py --model_file chechpoints/model_e24_1.63.pickle`. By default,
+the sampled text is saved into `sample.txt`.
 
 ### TODO
 1. learning rate decay
 2. output info more often than each epoch
+3. plot losses
