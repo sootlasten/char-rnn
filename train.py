@@ -29,7 +29,6 @@ net = Network(
     grad_clip=p_dict.get('grad_clip', 5))
 
 net.train(
-    data=data,
     eta=p_dict.get('eta', 0.001),
     n_epochs=p_dict.get('n_epochs', 10),
     tf=p_dict.get('train_frac', 0.95)

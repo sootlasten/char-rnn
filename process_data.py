@@ -3,6 +3,29 @@ import theano
 
 DATA_FILE = 'input.txt'
 
+with open(DATA_FILE, 'r') as f:
+    data = f.read()
+
+chars = sorted(list(set(data)))
+data_size = len(data)
+vocab_size = len(chars)
+
+char_to_ix = {ch: i for i, ch in enumerate(chars)}
+to_char = {i: ch for i, ch in enumerate(chars)}
+
+
+def _vectorize(data):
+    """Vectorize data into a matrix of size (data_size, vocab_size), where each
+    row is a one-hot vector, where the index of 1 corresponds to the index of
+    the character."""
+    data_ix = [char_to_ix[c] for c in data]
+    data_vec = np.zeros((len(data), vocab_size),
+                        dtype=theano.config.floatX)
+    data_vec[np.arange(len(data)), data_ix] = 1
+    return data_vec
+
+vec_data = _vectorize(data)
+
 
 def gen_batches(data, batch_size, seq_length):
     """Generates batches with the shape (batch_size, seq_length, vocab_size).
@@ -38,26 +61,12 @@ def gen_batches(data, batch_size, seq_length):
         yield x, y
 
 
-def _vectorize(data):
-    """Vectorize data into a matrix of size (data_size, vocab_size), where each
-    row is a one-hot vector, where the index of 1 corresponds to the index of
-    the character."""
-    data_ix = [char_to_ix[c] for c in data]
-    data_vec = np.zeros((len(data), vocab_size),
-                        dtype=theano.config.floatX)
-    data_vec[np.arange(len(data)), data_ix] = 1
-    return data_vec
+def split_data(tf):
+    """Splits data into train and val set. 'tf' is the fraction of train data."""
+    assert tf > 0 and tf <= 1
 
+    train_n = int(data_size * tf)
+    tr_data = vec_data[:train_n]
+    val_data = vec_data[train_n:]
 
-with open(DATA_FILE, 'r') as f:
-    data = f.read()
-
-chars = sorted(list(set(data)))
-data_size = len(data)
-vocab_size = len(chars)
-
-char_to_ix = {ch: i for i, ch in enumerate(chars)}
-to_char = {i: ch for i, ch in enumerate(chars)}
-
-vec_data = _vectorize(data)
-# gen_batches(vec_data, 50, 100)
+    return tr_data, val_data

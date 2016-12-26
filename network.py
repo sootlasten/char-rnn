@@ -58,35 +58,50 @@ class Network(object):
 
         self.gru_layers, self.network = self._build_network()
 
-    def train(self, data, eta, n_epochs, tf):
+    def train(self, eta, n_epochs, tf):
+        # BUILD GRAPH FOR TRAINING ...
         r = lasagne.layers.get_output(self.gru_layers + [self.network], self.x)
-        gru_layers_outs, pred = r[:-1], r[-1]
+        gru_layers_outs_tr, pred = r[:-1], r[-1]
 
         # we only care about the last outputs in GRU layers
-        gru_outs = [gru_layer_outs[:, -1, :] for gru_layer_outs in gru_layers_outs]
+        gru_outs_tr = [gru_layer_outs[:, -1, :]
+                       for gru_layer_outs in gru_layers_outs_tr]
 
         # reshape y to (self.batch_size * self.seq_length, self.vocab_size) so it matches
         # the shape of pred (only 2-D tensors can be used in cross-entropy loss).
         y_reshaped = self.y.reshape((self.batch_size * self.seq_length, -1))
 
-        loss = lasagne.objectives.categorical_crossentropy(pred, y_reshaped).mean()
+        tr_loss = lasagne.objectives.categorical_crossentropy(pred, y_reshaped).mean()
 
         params = lasagne.layers.get_all_params(self.network, trainable=True)
-        updates = lasagne.updates.adam(loss, params, learning_rate=eta)
+        updates = lasagne.updates.adam(tr_loss, params, learning_rate=eta)
+
+        # BUILD GRAPH FOR VALIDATION ...
+        r = lasagne.layers.get_output(self.gru_layers + [self.network], self.x,
+                                      deterministic=True)
+        gru_layers_outs_val, pred = r[:-1], r[-1]
+
+        # we only care about the last outputs in GRU layers
+        gru_outs_val = [gru_layer_outs[:, -1, :]
+                       for gru_layer_outs in gru_layers_outs_val]
+
+        val_loss = lasagne.objectives.\
+            categorical_crossentropy(pred, y_reshaped).mean()
 
         # compile functions
         train_fn = theano.function([self.x, self.y, self.gru_sym_inits],
-                                   [loss] + gru_outs, updates=updates)
+                                   [tr_loss] + gru_outs_tr, updates=updates)
+        val_fn = theano.function([self.x, self.y, self.gru_sym_inits],
+                                [val_loss] + gru_outs_val)
 
         # do the actual training
-        tr_data = process_data.vec_data
+        tr_data, val_data = process_data.split_data(tf)
 
         print("Training...")
         for epoch_n in xrange(n_epochs):
             start_time = time.time()
 
-            # full pass over the training data
-            total_train_err = 0
+            # FULL PASS OVER THE TRAINING SET
             gen_tr_batch = process_data.gen_batches(
                 tr_data, self.batch_size, self.seq_length)
 
@@ -97,9 +112,19 @@ class Network(object):
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
                 r = train_fn(x, y, gru_prevs)
                 err, gru_prevs = r[0], r[1:]
-                total_train_err += err
 
-                print(err)
+            # FULL PASS OVER THE VALIDATION SET
+            total_val_err = 0
+            gen_val_batch = process_data.gen_batches(
+                val_data, self.batch_size, self.seq_length)
+
+            # initialize gru hidden states to 0
+            gru_prevs = [np.zeros((self.batch_size, self.n_h_units))
+                         for _ in xrange(self.n_h_layers)]
+
+            for val_batches_n, (x, y) in enumerate(gen_val_batch, 1):
+                r = val_fn(x, y, gru_prevs)
+                err, gru_prevs = r[0], r[1:]
 
     def _build_network(self):
         """Input shape should be (batch_size, seq_length, vocab_size).
@@ -129,4 +154,3 @@ class Network(object):
             network, nonlinearity=lasagne.nonlinearities.softmax)
 
         return gru_layers, network
-
