@@ -3,12 +3,13 @@ import time
 import numpy as np
 import theano
 import theano.tensor as T
+import theano.typed_list
 import lasagne
 
 import process_data
 
+DEBUG = True
 theano.config.optimizer = 'fast_compile'
-
 
 class Network(object):
 
@@ -23,10 +24,33 @@ class Network(object):
         self.grad_clip = grad_clip
 
         self.x = T.tensor3('x')
-        self.y = T.matrix('y')
+        self.y = T.tensor3('y')
 
         # symbolic variables for the outputs of GRU layers
-        self.gru_sym_inits = [T.matrix("gru_%d" % i) for i in xrange(n_h_layers)]
+        self.gru_sym_inits = theano.typed_list.TypedListType(
+            T.TensorType(theano.config.floatX, (False, False)))()
+        [self.gru_sym_inits.append(T.matrix("gru_%d" % i)) for i in xrange(n_h_layers)]
+
+        # ----------------------------------
+        if DEBUG:
+            theano.config.compute_test_value = 'warn'
+
+            tr_data = process_data.vec_data
+            batch_size = 50
+
+            gen_tr_batch = process_data.gen_batches(
+                tr_data, batch_size, self.seq_length)
+
+            # initialize gru hidden states to 0
+            gru_inits = [np.zeros((batch_size, self.n_h_units))
+                         for _ in xrange(self.n_h_layers)]
+
+            x, y = next(gen_tr_batch)
+
+            self.x.tag.test_value = x
+            self.y.tag.test_value = y
+            self.gru_sym_inits.tag.test_value = gru_inits
+        # ----------------------------------
 
         self.gru_layers, self.network = self._build_network()
 
@@ -40,11 +64,11 @@ class Network(object):
         updates = lasagne.updates.adam(loss, params, learning_rate=eta)
 
         # compile functions
-        train_fn = theano.function([self.x, self.y] + self.gru_sym_inits,
+        train_fn = theano.function([self.x, self.y, self.gru_sym_inits],
                                    [loss] + gru_outs, updates=updates)
 
         # do the actual training
-        tr_data = process_data.data
+        tr_data = process_data.vec_data
 
         print("Training...")
         for epoch_n in xrange(n_epochs):
@@ -60,9 +84,7 @@ class Network(object):
                          for _ in xrange(self.n_h_layers)]
 
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
-                train_err += train_fn(x, y)
-
-
+                train_fn(x, y, gru_inits)
 
     def _build_network(self):
         """Input shape should be (batch_size, seq_length, vocab_size)."""
@@ -70,12 +92,12 @@ class Network(object):
             shape=(None, self.seq_length, self.vocab_size),
             input_var=self.x)
 
-        # build all LSTM layers except the last one
+        # build GRU layers
         gru_layers = []
-        for gru_sym_init in self.gru_sym_inits:
+        for i in xrange(self.n_h_layers):
             network = lasagne.layers.GRULayer(
                 lasagne.layers.dropout(network, self.drop_p), self.n_h_units,
-                hid_init=gru_sym_init,
+                hid_init=self.gru_sym_inits[i],
                 grad_clipping=self.grad_clip)
             gru_layers.append(network)
 

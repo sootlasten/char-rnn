@@ -1,6 +1,6 @@
 n_h_layers=1
-n_h_units=100
-seq_length=50
+n_h_units=75
+seq_length=100
 batch_size=50
 n_epochs=10
 eta=0.01
