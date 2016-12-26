@@ -39,9 +39,6 @@ class Network(object):
 
         self.gru_layers, self.network = self._build_network()
 
-        # just for fun ...
-        print("# of parameters in the model: %d\n" % self._model_params_size())
-
     def sample(self, n, prime_text, chars, char_to_ix, to_char):
         """Sample from the model."""
 
@@ -91,6 +88,8 @@ class Network(object):
         return gen_text
 
     def train(self, eta, n_epochs, tf):
+        self._print_model_info(eta, n_epochs, tf)
+
         # BUILD GRAPH FOR TRAINING ...
         r = lasagne.layers.get_output(self.gru_layers + [self.network], self.x)
         gru_layers_outs_tr, pred = r[:-1], r[-1]
@@ -230,3 +229,22 @@ class Network(object):
         """Returns the number of trainable parameters of the model."""
         return sum([param.size for param in
                     lasagne.layers.get_all_param_values(self.network)])
+
+    def _print_model_info(self, eta, n_epochs, tf):
+        print("Model hyperparams and info:")
+        print("---------------------------")
+        print("n_h_layers:              %d" % self.n_h_layers)
+        print("n_h_units:               %d" % self.n_h_units)
+        print("batch_size:              %d" % self.batch_size)
+        print("seq_length:              %d" % self.seq_length)
+        print("vocab_size:              %d\n" % self.vocab_size)
+
+        print("drop_p:                  {:.3f}".format(self.drop_p))
+        print("grad_clip:               %d" % self.grad_clip)
+        print("eta:                     {:.6f}".format(eta))
+        print("n_epochs:                %d" % n_epochs)
+        print("train_frac:              {:.2f}\n".format(tf))
+
+        print("data_size:               %d" % process_data.data_size)
+        print("# of trainabe params:    %d\n" % self._model_params_size())
+

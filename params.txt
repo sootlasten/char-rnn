@@ -1,8 +1,8 @@
 n_h_layers=2
 n_h_units=200
 batch_size=5
-seq_length=20
-n_epochs=10
+seq_length=100
+n_epochs=100
 eta=0.01
 drop_p=0.5
 grad_clip=5
