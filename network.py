@@ -106,7 +106,8 @@ class Network(object):
                 tr_data, self.batch_size, self.seq_length)
 
             # initialize gru hidden states to 0
-            gru_prevs = [np.zeros((self.batch_size, self.n_h_units))
+            gru_prevs = [np.zeros((self.batch_size, self.n_h_units),
+                                  dtype=theano.config.floatX)
                          for _ in xrange(self.n_h_layers)]
 
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
@@ -122,7 +123,8 @@ class Network(object):
                 val_data, self.batch_size, self.seq_length)
 
             # initialize gru hidden states to 0
-            gru_prevs = [np.zeros((self.batch_size, self.n_h_units))
+            gru_prevs = [np.zeros((self.batch_size, self.n_h_units),
+                                  dtype=theano.config.floatX)
                          for _ in xrange(self.n_h_layers)]
 
             for val_batches_n, (x, y) in enumerate(gen_val_batch, 1):
