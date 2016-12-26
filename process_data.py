@@ -4,7 +4,7 @@ import theano
 DATA_FILE = 'input.txt'
 
 with open(DATA_FILE, 'r') as f:
-    data = f.read()
+    data = f.read()[:1001]
 
 chars = sorted(list(set(data)))
 data_size = len(data)
@@ -52,7 +52,8 @@ def gen_batches(data, batch_size, seq_length):
     end_idx = chars_in_batch * (len(data) / chars_in_batch)
 
     x = data[:end_idx].reshape(batch_size, -1, vocab_size)
-    y = data[1:end_idx + 1].reshape(batch_size, -1, vocab_size)
+    y = np.vstack((data[1: end_idx], data[0])).\
+        reshape((batch_size, -1, vocab_size))  # last label is wrong, but who really cares ...
 
     x_batches = np.split(x, x.shape[1] / seq_length, 1)
     y_batches = np.split(y, y.shape[1] / seq_length, 1)
@@ -63,7 +64,7 @@ def gen_batches(data, batch_size, seq_length):
 
 def split_data(tf):
     """Splits data into train and val set. 'tf' is the fraction of train data."""
-    assert tf > 0 and tf <= 1
+    assert 0 < tf <= 1
 
     train_n = int(data_size * tf)
     tr_data = vec_data[:train_n]

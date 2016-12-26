@@ -1,9 +1,9 @@
 n_h_layers=1
 n_h_units=75
-batch_size=50
-seq_length=100
+batch_size=5
+seq_length=20
 n_epochs=10
 eta=0.01
 drop_p=0.5
 grad_clip=5
-train_frac=0.95
+train_frac=0.7

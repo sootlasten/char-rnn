@@ -1,4 +1,6 @@
+import os
 import time
+import cPickle as pickle
 
 import numpy as np
 import theano
@@ -9,7 +11,7 @@ import lasagne
 import process_data
 from custom_gru import GRULayer
 
-DEBUG = True
+DEBUG = False
 theano.config.optimizer = 'fast_compile'
 
 
@@ -83,7 +85,7 @@ class Network(object):
 
         # we only care about the last outputs in GRU layers
         gru_outs_val = [gru_layer_outs[:, -1, :]
-                       for gru_layer_outs in gru_layers_outs_val]
+                        for gru_layer_outs in gru_layers_outs_val]
 
         val_loss = lasagne.objectives.\
             categorical_crossentropy(pred, y_reshaped).mean()
@@ -96,9 +98,11 @@ class Network(object):
 
         # do the actual training
         tr_data, val_data = process_data.split_data(tf)
+        best_val_err = float('inf')
+        filename = None
 
         print("Training...")
-        for epoch_n in xrange(n_epochs):
+        for epoch_n in xrange(1, n_epochs + 1):
             start_time = time.time()
 
             # FULL PASS OVER THE TRAINING SET
@@ -110,12 +114,11 @@ class Network(object):
                                   dtype=theano.config.floatX)
                          for _ in xrange(self.n_h_layers)]
 
+            total_tr_err = 0
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
                 r = train_fn(x, y, gru_prevs)
                 err, gru_prevs = r[0], r[1:]
-                print(err)
-
-            print("Batch completed in %d seconds" % time.time() - start_time)
+                total_tr_err += err
 
             # FULL PASS OVER THE VALIDATION SET
             total_val_err = 0
@@ -130,6 +133,26 @@ class Network(object):
             for val_batches_n, (x, y) in enumerate(gen_val_batch, 1):
                 r = val_fn(x, y, gru_prevs)
                 err, gru_prevs = r[0], r[1:]
+                total_val_err += err
+
+            total_tr_err /= tr_batches_n
+            total_val_err /= val_batches_n
+
+            if total_val_err < best_val_err:
+                best_val_err = total_val_err
+
+                try:
+                    os.remove(filename)  # remove previous best model checkpoint
+                except TypeError:
+                    pass
+
+                filename = "model_e{}_{:.2f}.pickle".format(epoch_n, total_val_err)
+
+                self._save_weights_and_hyperparams(filename)
+
+            print("Epoch %d completed in %d seconds" % (epoch_n, time.time() - start_time))
+            print("Training loss:       %f" % (total_tr_err / tr_batches_n))
+            print("Validation loss:     %f\n" % (total_val_err / val_batches_n))
 
     def _build_network(self):
         """Input shape should be (batch_size, seq_length, vocab_size).
@@ -159,3 +182,17 @@ class Network(object):
             network, nonlinearity=lasagne.nonlinearities.softmax)
 
         return gru_layers, network
+
+    def _save_weights_and_hyperparams(self, file_path):
+        """Saves the params (weights) and model (hyper)parameters to a file."""
+        weights = lasagne.layers.get_all_param_values(self.network)
+
+        model_param_dict = {
+            'n_h_layers': self.n_h_layers,
+            'n_h_units': self.n_h_units,
+            'batch_size': self.batch_size,
+            'seq_length': self.seq_length,
+            'vocab_size': self.vocab_size}
+
+        with open(file_path, 'wb') as f:
+            pickle.dump((model_param_dict, weights), f)
