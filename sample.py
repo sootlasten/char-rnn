@@ -25,14 +25,14 @@ def parse_args():
                         default=None)
     parser.add_argument('--length', help='Number of characters to sample',
                         type=int, default=100)
+    parser.add_argument('--out_file', help='Path to output file', default='sample.txt')
     return parser.parse_args()
 
 
 args = parse_args()
 net, chars, char_to_ix, to_char = load_model(args.model_file)
 
-with open('sample.txt', 'w') as f:
+with open(args.out_file, 'w') as f:
     sample_text = net.sample(args.length, args.prime_text,
                              chars, char_to_ix, to_char)
     f.write(sample_text)
-

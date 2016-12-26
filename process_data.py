@@ -4,7 +4,7 @@ import theano
 DATA_FILE = 'input.txt'
 
 with open(DATA_FILE, 'r') as f:
-    data = f.read()[:1001]
+    data = f.read()
 
 chars = sorted(list(set(data)))
 data_size = len(data)

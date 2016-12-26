@@ -11,8 +11,7 @@ import lasagne
 import process_data
 from custom_gru import GRULayer
 
-DEBUG = True
-theano.config.optimizer = 'fast_compile'
+CHECKPOINT_DIR = 'checkpoints'
 
 
 class Network(object):
@@ -38,32 +37,10 @@ class Network(object):
             T.TensorType(theano.config.floatX, (False, False)))()
         [self.gru_sym_inits.append(T.matrix("gru_%d" % i)) for i in xrange(n_h_layers)]
 
-        # ----------------------------------
-        if DEBUG:
-            theano.config.compute_test_value = 'warn'
-
-            # tr_data = process_data.vec_data
-            #
-            # gen_tr_batch = process_data.gen_batches(
-            #     tr_data, self.batch_size, self.seq_length)
-
-            # initialize gru hidden states to 0
-            gru_inits = [np.zeros((self.batch_size, self.n_h_units))
-                         for _ in xrange(self.n_h_layers)]
-
-            x = np.zeros(46, dtype=theano.config.floatX)
-            x[4] = 1
-            x = x.reshape(1, 1, 46)
-
-
-            # x, y = next(gen_tr_batch)
-
-            self.x.tag.test_value = x
-            # self.y.tag.test_value = y
-            self.gru_sym_inits.tag.test_value = gru_inits
-        # ----------------------------------
-
         self.gru_layers, self.network = self._build_network()
+
+        # just for fun ...
+        print("# of parameters in the model: %d\n" % self._model_params_size())
 
     def sample(self, n, prime_text, chars, char_to_ix, to_char):
         """Sample from the model."""
@@ -151,8 +128,7 @@ class Network(object):
 
         # do the actual training
         tr_data, val_data = process_data.split_data(tf)
-        best_val_err = float('inf')
-        filename = None
+        best_val_err, best_epoch_n = float('inf'), 0
 
         print("Training...")
         for epoch_n in xrange(1, n_epochs + 1):
@@ -188,24 +164,23 @@ class Network(object):
                 err, gru_prevs = r[0], r[1:]
                 total_val_err += err
 
+            # OUTPUT INFO
             total_tr_err /= tr_batches_n
             total_val_err /= val_batches_n
 
             if total_val_err < best_val_err:
                 best_val_err = total_val_err
+                best_epoch_n = epoch_n
 
-                try:
-                    os.remove(filename)  # remove previous best model checkpoint
-                except TypeError:
-                    pass
-
-                filename = "model_e{}_{:.2f}.pickle".format(epoch_n, total_val_err)
-
-                self._save_weights_and_hyperparams(filename)
+            filename = "model_e{}_{:.2f}.pickle".format(epoch_n, total_val_err)
+            self._save_weights_and_hyperparams(
+                os.path.join(CHECKPOINT_DIR, filename))
 
             print("Epoch %d completed in %d seconds" % (epoch_n, time.time() - start_time))
-            print("Training loss:       %f" % (total_tr_err / tr_batches_n))
-            print("Validation loss:     %f\n" % (total_val_err / val_batches_n))
+            print("Training loss:       %f" % total_tr_err)
+            print("Validation loss:     %f" % total_val_err)
+            print("Best epoch:          %d" % best_epoch_n)
+            print("Best val loss:       %f\n" % best_val_err)
 
     def _build_network(self):
         """Input shape should be (batch_size, seq_length, vocab_size).
@@ -250,3 +225,8 @@ class Network(object):
 
         with open(file_path, 'wb') as f:
             pickle.dump((model_param_dict, weights), f)
+
+    def _model_params_size(self):
+        """Returns the number of trainable parameters of the model."""
+        return sum([param.size for param in
+                    lasagne.layers.get_all_param_values(self.network)])

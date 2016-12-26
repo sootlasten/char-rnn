@@ -31,5 +31,4 @@ net = Network(
 net.train(
     eta=p_dict.get('eta', 0.001),
     n_epochs=p_dict.get('n_epochs', 10),
-    tf=p_dict.get('train_frac', 0.95)
-)
+    tf=p_dict.get('train_frac', 0.95))
