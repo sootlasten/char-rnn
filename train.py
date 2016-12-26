@@ -1,8 +1,6 @@
 from network import Network
 import process_data
 
-import theano
-theano.config.optimizer = 'fast_compile'
 
 PARAMS_FILE = 'params.txt'
 
