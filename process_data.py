@@ -1,9 +1,11 @@
+import os
 import numpy as np
 import theano
 
+DATA_FOLDER = 'data'
 DATA_FILE = 'input.txt'
 
-with open(DATA_FILE, 'r') as f:
+with open(os.path.join(DATA_FOLDER, DATA_FILE), 'r') as f:
     data = f.read()
 
 chars = sorted(list(set(data)))
