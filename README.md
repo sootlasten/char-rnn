@@ -20,3 +20,4 @@ the sampled text is saved into `sample.txt`.
 1. learning rate decay
 2. output info more often than each epoch
 3. plot losses
+4. sample during training?
