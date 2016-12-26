@@ -21,19 +21,19 @@ the sampled text is saved into `sample.txt`.
 Just after a few minutes of training on the tinyshakespeare dataset, the rather stupid network is a nationalist (the network was primed
 with the text `the mearning of is `:
 
-`the meaning of life is the state,
+```the meaning of life is the state,
 And then the state and the state and the state,
 And then the state and the state and the state,
 And then the state and the state and the state,
 And then the state and the state and the state,
 And then the state and the state and the state,
-And then the state and the state and the state`
+And then the state and the state and the state```
 
 However, after it has had a bit more schooling, it has a more profound worldview:
-`the meaning of life is the country,
+```the meaning of life is the country,
 And then the country of the country's country,
 And then the sense of the common than the country,
-And there is not the country of the country.`
+And there is not the country of the country.```
 
 ### TODO
 1. learning rate decay
