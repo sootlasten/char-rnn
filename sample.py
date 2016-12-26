@@ -23,9 +23,10 @@ def parse_args():
                                              'the model information')
     parser.add_argument('--prime_text', help='Text to feed the network with before sampling',
                         default=None)
-    parser.add_argument('--length', help='Number of characters to sample',
+    parser.add_argument('--length', help='Number of characters to sample. Defaults to 100.',
                         type=int, default=100)
-    parser.add_argument('--out_file', help='Path to output file', default='sample.txt')
+    parser.add_argument('--out_file', help='Path to output file. Defaults to ./sample.txt',
+                        default='sample.txt')
     return parser.parse_args()
 
 

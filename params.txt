@@ -6,4 +6,4 @@ n_epochs=100
 eta=0.01
 drop_p=0.5
 grad_clip=5
-train_frac=0.7
+train_frac=0.95
