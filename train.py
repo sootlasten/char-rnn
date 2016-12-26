@@ -22,14 +22,14 @@ data = process_data.vec_data
 net = Network(
     n_h_layers=p_dict.get('n_h_layers', 2),
     n_h_units=p_dict.get('n_h_units', 100),
-    vocab_size=process_data.vocab_size,
+    batch_size=p_dict.get('batch_size', 40),
     seq_length=p_dict.get('seq_length', 25),
+    vocab_size=process_data.vocab_size,
     drop_p=p_dict.get('drop_p', 0.5),
     grad_clip=p_dict.get('grad_clip', 5))
 
 net.train(
     data=data,
-    batch_size=p_dict.get('batch_size', 50),
     eta=p_dict.get('eta', 0.001),
     n_epochs=p_dict.get('n_epochs', 10),
     tf=p_dict.get('train_frac', 0.95)

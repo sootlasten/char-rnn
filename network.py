@@ -7,19 +7,24 @@ import theano.typed_list
 import lasagne
 
 import process_data
+from custom_gru import GRULayer
 
 DEBUG = True
 theano.config.optimizer = 'fast_compile'
 
+
 class Network(object):
 
-    def __init__(self, n_h_layers, n_h_units, vocab_size, seq_length,
-                 drop_p=0.5, grad_clip=5):
+    def __init__(self, n_h_layers, n_h_units, batch_size, seq_length,
+                 vocab_size, drop_p=0.5, grad_clip=5):
         # network parameters
         self.n_h_layers = n_h_layers
         self.n_h_units = n_h_units
+
+        self.batch_size = batch_size
         self.vocab_size = vocab_size
         self.seq_length = seq_length
+
         self.drop_p = drop_p
         self.grad_clip = grad_clip
 
@@ -36,13 +41,12 @@ class Network(object):
             theano.config.compute_test_value = 'warn'
 
             tr_data = process_data.vec_data
-            batch_size = 50
 
             gen_tr_batch = process_data.gen_batches(
-                tr_data, batch_size, self.seq_length)
+                tr_data, self.batch_size, self.seq_length)
 
             # initialize gru hidden states to 0
-            gru_inits = [np.zeros((batch_size, self.n_h_units))
+            gru_inits = [np.zeros((self.batch_size, self.n_h_units))
                          for _ in xrange(self.n_h_layers)]
 
             x, y = next(gen_tr_batch)
@@ -54,11 +58,18 @@ class Network(object):
 
         self.gru_layers, self.network = self._build_network()
 
-    def train(self, data, batch_size, eta, n_epochs, tf):
+    def train(self, data, eta, n_epochs, tf):
         r = lasagne.layers.get_output(self.gru_layers + [self.network], self.x)
-        gru_outs, pred = r[:-1], r[-1]
+        gru_layers_outs, pred = r[:-1], r[-1]
 
-        loss = lasagne.objectives.categorical_crossentropy(pred, self.y).mean()
+        # we only care about the last outputs in GRU layers
+        gru_outs = [gru_layer_outs[:, -1, :] for gru_layer_outs in gru_layers_outs]
+
+        # reshape y to (self.batch_size * self.seq_length, self.vocab_size) so it matches
+        # the shape of pred (only 2-D tensors can be used in cross-entropy loss).
+        y_reshaped = self.y.reshape((self.batch_size * self.seq_length, -1))
+
+        loss = lasagne.objectives.categorical_crossentropy(pred, y_reshaped).mean()
 
         params = lasagne.layers.get_all_params(self.network, trainable=True)
         updates = lasagne.updates.adam(loss, params, learning_rate=eta)
@@ -75,27 +86,32 @@ class Network(object):
             start_time = time.time()
 
             # full pass over the training data
-            train_err = 0
+            total_train_err = 0
             gen_tr_batch = process_data.gen_batches(
-                tr_data, batch_size, self.seq_length)
+                tr_data, self.batch_size, self.seq_length)
 
             # initialize gru hidden states to 0
-            gru_inits = [np.zeros((batch_size, self.n_h_units))
+            gru_prevs = [np.zeros((self.batch_size, self.n_h_units))
                          for _ in xrange(self.n_h_layers)]
 
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
-                train_fn(x, y, gru_inits)
+                r = train_fn(x, y, gru_prevs)
+                err, gru_prevs = r[0], r[1:]
+                total_train_err += err
+
+                print(err)
 
     def _build_network(self):
-        """Input shape should be (batch_size, seq_length, vocab_size)."""
+        """Input shape should be (batch_size, seq_length, vocab_size).
+        Network output shape is (batch_size * seq_length, vocab_size)."""
         network = lasagne.layers.InputLayer(
-            shape=(None, self.seq_length, self.vocab_size),
+            (self.batch_size, self.seq_length, self.vocab_size),
             input_var=self.x)
 
         # build GRU layers
         gru_layers = []
         for i in xrange(self.n_h_layers):
-            network = lasagne.layers.GRULayer(
+            network = GRULayer(
                 lasagne.layers.dropout(network, self.drop_p), self.n_h_units,
                 hid_init=self.gru_sym_inits[i],
                 grad_clipping=self.grad_clip)
@@ -103,7 +119,14 @@ class Network(object):
 
         network = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(network, self.drop_p), self.vocab_size,
-            nonlinearity=lasagne.nonlinearities.softmax)
+            nonlinearity=None,
+            num_leading_axes=2)
+
+        network = lasagne.layers.ReshapeLayer(
+            network, (self.batch_size * self.seq_length, self.vocab_size))
+
+        network = lasagne.layers.NonlinearityLayer(
+            network, nonlinearity=lasagne.nonlinearities.softmax)
 
         return gru_layers, network
 

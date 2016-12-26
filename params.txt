@@ -1,7 +1,7 @@
 n_h_layers=1
 n_h_units=75
-seq_length=100
 batch_size=50
+seq_length=100
 n_epochs=10
 eta=0.01
 drop_p=0.5

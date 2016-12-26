@@ -18,7 +18,6 @@ import theano
 import theano.tensor as T
 import os
 import time
-import gzip
 import lasagne
 import cPickle
 
@@ -75,7 +74,7 @@ def load_data(file_name, vocab_map, vocab_idx):
         return words
 
     words = []
-    with gzip.open(file_name, 'rb') as f:
+    with open(file_name, 'rb') as f:
         for line in f.readlines():
             words += process_line(line)
 
@@ -152,13 +151,13 @@ def reorder(x_in, batch_size, model_seq_len):
 
 
 def traindata(model_seq_len, batch_size, vocab_map, vocab_idx):
-    x = load_data(os.path.join(folder, "ptb.train.txt.gz"),
+    x = load_data(os.path.join(folder, "ptb.train.txt"),
                   vocab_map, vocab_idx)
     return reorder(x, batch_size, model_seq_len)
 
 
 def validdata(model_seq_len, batch_size, vocab_map, vocab_idx):
-    x = load_data(os.path.join(folder, "ptb.valid.txt.gz"),
+    x = load_data(os.path.join(folder, "ptb.valid.txt"),
                   vocab_map, vocab_idx)
     return reorder(x, batch_size, model_seq_len)
 
