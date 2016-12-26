@@ -11,7 +11,7 @@ import lasagne
 import process_data
 from custom_gru import GRULayer
 
-DEBUG = False
+DEBUG = True
 theano.config.optimizer = 'fast_compile'
 
 
@@ -42,23 +42,76 @@ class Network(object):
         if DEBUG:
             theano.config.compute_test_value = 'warn'
 
-            tr_data = process_data.vec_data
-
-            gen_tr_batch = process_data.gen_batches(
-                tr_data, self.batch_size, self.seq_length)
+            # tr_data = process_data.vec_data
+            #
+            # gen_tr_batch = process_data.gen_batches(
+            #     tr_data, self.batch_size, self.seq_length)
 
             # initialize gru hidden states to 0
             gru_inits = [np.zeros((self.batch_size, self.n_h_units))
                          for _ in xrange(self.n_h_layers)]
 
-            x, y = next(gen_tr_batch)
+            x = np.zeros(46, dtype=theano.config.floatX)
+            x[4] = 1
+            x = x.reshape(1, 1, 46)
+
+
+            # x, y = next(gen_tr_batch)
 
             self.x.tag.test_value = x
-            self.y.tag.test_value = y
+            # self.y.tag.test_value = y
             self.gru_sym_inits.tag.test_value = gru_inits
         # ----------------------------------
 
         self.gru_layers, self.network = self._build_network()
+
+    def sample(self, n, prime_text, chars, char_to_ix, to_char):
+        """Sample from the model."""
+
+        def vectorize(c):
+            """Turn a single character into a one-hot vector."""
+            c_idx = char_to_ix[c]
+            c_vec = np.zeros(self.vocab_size, dtype=theano.config.floatX)
+            c_vec[c_idx] = 1
+            # need reshaping because network expects 3 dimensional input:
+            return c_vec.reshape((1, 1, -1))
+
+        # build graph
+        r = lasagne.layers.get_output(self.gru_layers + [self.network], self.x,
+                                      deterministic=True)
+        gru_layers_outs, pred = r[:-1], r[-1]
+        c_pred = pred.argmax()
+
+        gru_outs = [gru_layer_outs[:, -1, :]
+                       for gru_layer_outs in gru_layers_outs]
+
+        pred_fn = theano.function([self.x, self.gru_sym_inits],
+                                  [c_pred] + gru_outs)
+
+        # SAMPLE ...
+        if not prime_text:  # if no prime text, choose a random char
+            prime_text = chars[np.random.randint(self.vocab_size)]
+
+        # initialize gru hidden states to 0
+        gru_prevs = [np.zeros((self.batch_size, self.n_h_units),
+                              dtype=theano.config.floatX)
+                     for _ in xrange(self.n_h_layers)]
+
+        # feed in prime text
+        for c in prime_text:
+            c_vec = vectorize(c)
+            r = pred_fn(c_vec, gru_prevs)
+            c, gru_prevs = to_char[int(r[0])], r[1:]
+
+        # now start generating custom text
+        gen_text = prime_text + c
+        for _ in xrange(n):
+            c_vec = vectorize(c)
+            r = pred_fn(c_vec, gru_prevs)
+            c, gru_prevs = to_char[int(r[0])], r[1:]
+            gen_text += c
+
+        return gen_text
 
     def train(self, eta, n_epochs, tf):
         # BUILD GRAPH FOR TRAINING ...
@@ -105,7 +158,7 @@ class Network(object):
         for epoch_n in xrange(1, n_epochs + 1):
             start_time = time.time()
 
-            # FULL PASS OVER THE TRAINING SET
+            # FULL PASS OVER THE TRAINING SET ...
             gen_tr_batch = process_data.gen_batches(
                 tr_data, self.batch_size, self.seq_length)
 
@@ -120,7 +173,7 @@ class Network(object):
                 err, gru_prevs = r[0], r[1:]
                 total_tr_err += err
 
-            # FULL PASS OVER THE VALIDATION SET
+            # FULL PASS OVER THE VALIDATION SET ...
             total_val_err = 0
             gen_val_batch = process_data.gen_batches(
                 val_data, self.batch_size, self.seq_length)
@@ -190,9 +243,10 @@ class Network(object):
         model_param_dict = {
             'n_h_layers': self.n_h_layers,
             'n_h_units': self.n_h_units,
-            'batch_size': self.batch_size,
-            'seq_length': self.seq_length,
-            'vocab_size': self.vocab_size}
+            'vocab_size': self.vocab_size,
+            'chars': process_data.chars,
+            'char_to_ix': process_data.char_to_ix,
+            'to_char': process_data.to_char}
 
         with open(file_path, 'wb') as f:
             pickle.dump((model_param_dict, weights), f)
