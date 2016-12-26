@@ -5,10 +5,11 @@ GRU units. The code is developed in Python 2.7 and needs some tweaking if one wa
 
 ### Training
 To train the model, the script `train.py` must be run with the command `python train.py`. The script loads hyperparemeters from the file
-`params.txt` and runs the model from `network.py` with these parameters set. During training, after each epoch, the code prints some 
-information about the performace of the model to standard output. It also saves the checkpoint files (that contain weights and additional 
-info needed to reload the model) to `checkpoints/` (if this directory doesn't exist, it must be created) after each epoch. Each checkpoint 
-file has a filename of the form `model_e[x]_[y].pickle`, where `x` specifies the epoch number and `y` specifies validation loss for this epoch.
+`params.txt` and runs the model from `network.py` with these parameters set. The input file is located in `data/input.txt` by default. 
+During training, after each epoch, the code prints some information about the performace of the model to standard output. It also saves 
+the checkpoint files (that contain weights and additional info needed to reload the model) to `checkpoints/` (if this directory doesn't 
+exist, it must be created) after each epoch. Each checkpoint file has a filename of the form `model_e[x]_[y].pickle`, where `x` specifies 
+the epoch number and `y` specifies validation loss for this epoch.
 
 ### Sampling
 To sample from the model, the script `sample.py` must be run. This script also takes command line arguments (see `python sample.py -h` 
