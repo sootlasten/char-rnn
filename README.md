@@ -1,5 +1,3 @@
-<div style="text-align: justify">
-
 # char-rnn
 
 An implementation of Andrej Karpathy's [char-rnn](https://github.com/karpathy/char-rnn) in Theano/Lasagne using 
@@ -20,5 +18,3 @@ the training phase. A minimal example of running the script: `python sample.py -
 ### TODO
 1. learning rate decay
 2. output info more often than each epoch
-
-</div>
