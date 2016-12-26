@@ -112,6 +112,9 @@ class Network(object):
             for tr_batches_n, (x, y) in enumerate(gen_tr_batch, 1):
                 r = train_fn(x, y, gru_prevs)
                 err, gru_prevs = r[0], r[1:]
+                print(err)
+
+            print("Batch completed in %d seconds" % time.time() - start_time)
 
             # FULL PASS OVER THE VALIDATION SET
             total_val_err = 0
