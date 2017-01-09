@@ -1,10 +1,23 @@
+import argparse
+
 from network import Network
 import process_data
 
 
-PARAMS_FILE = 'params.txt'
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train the network.')
+    parser.add_argument('--checkpoints_dir', help='Path to the directory to save '
+                                                  'checkpoints to.',
+                        default='checkpoints/')
+    parser.add_argument('--params_file', help='Path to the file where to read model '
+                                              'params from.',
+                        default='params.txt')
+    return parser.parse_args()
 
-with open(PARAMS_FILE, 'r') as f:
+
+args = parse_args()
+
+with open(args.params_file, 'r') as f:
     params = f.readlines()
 
 p_dict = dict()
@@ -29,4 +42,5 @@ net = Network(
 net.train(
     eta=p_dict.get('eta', 0.001),
     n_epochs=p_dict.get('n_epochs', 10),
-    tf=p_dict.get('train_frac', 0.95))
+    tf=p_dict.get('train_frac', 0.95),
+    checkpoint_dir=args.checkpoints_dir)

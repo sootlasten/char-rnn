@@ -87,7 +87,7 @@ class Network(object):
 
         return gen_text
 
-    def train(self, eta, n_epochs, tf):
+    def train(self, eta, n_epochs, tf, checkpoint_dir):
         self._print_model_info(eta, n_epochs, tf)
 
         # BUILD GRAPH FOR TRAINING ...
@@ -173,7 +173,7 @@ class Network(object):
 
             filename = "model_e{}_{:.4f}.pickle".format(epoch_n, total_val_err)
             self._save_weights_and_hyperparams(
-                os.path.join(CHECKPOINT_DIR, filename))
+                os.path.join(checkpoint_dir, filename))
 
             print("Epoch %d completed in %d seconds" % (epoch_n, time.time() - start_time))
             print("Training loss:       %f" % total_tr_err)
