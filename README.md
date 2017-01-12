@@ -17,27 +17,6 @@ for additional info). The only mandatory argument, though, is `--model_file`, wh
 the training phase. A minimal example of running the script: `python sample.py --model_file chechpoints/model_e24_1.63.pickle`. By default,
 the sampled text is saved into `sample.txt`.
 
-### A fun example
-Just after a few minutes of training on the tinyshakespeare dataset, the rather stupid network is a nationalist (the network was primed
-with the text `the mearning of is `:
-```
-the meaning of life is the state,
-And then the state and the state and the state,
-And then the state and the state and the state,
-And then the state and the state and the state,
-And then the state and the state and the state,
-And then the state and the state and the state,
-And then the state and the state and the state
-```
-
-However, after it has had a bit more schooling, it has a more profound worldview:
-```
-the meaning of life is the country,
-And then the country of the country's country,
-And then the sense of the common than the country,
-And there is not the country of the country.
-```
-
 ### TODO
 1. learning rate decay
 2. output info more often than each epoch

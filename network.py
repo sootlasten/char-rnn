@@ -11,8 +11,6 @@ import lasagne
 import process_data
 from custom_gru import GRULayer
 
-CHECKPOINT_DIR = 'checkpoints'
-
 
 class Network(object):
 
